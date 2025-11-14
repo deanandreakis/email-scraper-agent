@@ -15,7 +15,7 @@ class Config(BaseSettings):
     # Google API Configuration
     google_api_key: str = Field(..., description="Google API key for Generative AI")
     google_project_id: Optional[str] = Field(None, description="Google Cloud project ID")
-    google_model: str = Field("gemini-1.5-flash", description="Google AI model to use")
+    google_model: str = Field("gemini-2.0-flash", description="Google AI model to use")
 
     # Scraping Configuration
     max_websites: int = Field(10, description="Maximum number of websites to scrape")
