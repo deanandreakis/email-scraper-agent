@@ -63,11 +63,6 @@ def cli():
     help='Minimum confidence score for emails (0.0 to 1.0)'
 )
 @click.option(
-    '--headless/--no-headless',
-    default=True,
-    help='Run browser in headless mode'
-)
-@click.option(
     '--verbose', '-v',
     is_flag=True,
     help='Enable verbose logging'
@@ -77,7 +72,7 @@ def cli():
     is_flag=True,
     help='Force re-scraping of previously visited URLs'
 )
-def run(topic, max_sites, output, format, country, language, min_confidence, headless, verbose, force_rescrape):
+def run(topic, max_sites, output, format, country, language, min_confidence, verbose, force_rescrape):
     """
     Run the email scraper agent for a given topic.
 
@@ -92,7 +87,6 @@ def run(topic, max_sites, output, format, country, language, min_confidence, hea
         country=country,
         language=language,
         min_confidence=min_confidence,
-        headless=headless,
         verbose=verbose,
         force_rescrape=force_rescrape
     ))
@@ -106,7 +100,6 @@ async def _run_agent(
     country,
     language,
     min_confidence,
-    headless,
     verbose,
     force_rescrape
 ):
@@ -123,8 +116,6 @@ async def _run_agent(
         if verbose:
             config.log_level = "DEBUG"
             config.setup_logging()
-        if not headless:
-            config.headless = False
 
         # Create agent
         console.print(f"\n[bold blue]Email Scraper Agent[/bold blue]")
