@@ -1,14 +1,14 @@
 [project]
 name = "email-scraper-agent"
 version = "1.0.0"
-description = "AI agent that uses Google Agent Development Kit and Crawlee to scrape emails from websites based on topics"
+description = "AI agent that uses Google Gemini AI and custom web scraper to extract emails from websites based on topics"
 authors = [
     { name = "Email Scraper Agent Team" }
 ]
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
-keywords = ["ai", "agent", "web-scraping", "email", "crawlee", "google-ai"]
+keywords = ["ai", "agent", "web-scraping", "email", "gemini", "google-ai", "httpx"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -27,10 +27,10 @@ dependencies = [
     "google-generativeai>=0.3.0",
     "google-cloud-aiplatform>=1.38.0",
 
-    # Crawlee Web Scraping
+    # Legacy Web Scraping (deprecated, kept for compatibility)
     "crawlee>=0.0.7",
 
-    # Web Scraping & HTTP
+    # Web Scraping & HTTP (current implementation)
     "httpx>=0.25.0",
     "beautifulsoup4>=4.12.0",
     "lxml>=4.9.0",

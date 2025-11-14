@@ -1,12 +1,13 @@
 # Email Scraper AI Agent
 
-An intelligent AI agent that uses the Google Agent Development Kit and Crawlee web scraper to automatically find and extract email addresses from websites based on a given topic or classification.
+An intelligent AI agent that uses Google's Gemini AI and a custom web scraper to automatically find and extract email addresses from websites based on a given topic or classification.
 
 ## Features
 
-- **AI-Powered Search**: Uses Google Agent Development Kit to intelligently search for relevant websites
-- **Efficient Web Scraping**: Leverages Crawlee for robust and scalable web scraping
+- **AI-Powered Search**: Uses Google's Gemini AI to intelligently analyze topics and identify relevant websites
+- **Efficient Web Scraping**: Custom HTTP-based scraper with browser-like headers to avoid detection
 - **Email Extraction**: Automatically identifies and extracts email addresses from web pages
+- **Smart Page Prioritization**: Automatically prioritizes contact, about, and team pages where emails are more likely
 - **Topic-Based Discovery**: Finds websites related to your specified classification or topic
 - **Smart Caching**: Automatically tracks visited websites to prevent duplicate scraping
 - **Data Storage**: Saves extracted emails in multiple formats (CSV, JSON)
@@ -319,7 +320,8 @@ cache.clear()
 ```
 email-scraper-agent/
 ├── agent.py              # Main agent orchestration
-├── scraper.py            # Crawlee-based web scraper
+├── simple_scraper.py     # Custom HTTP-based web scraper
+├── scraper.py            # Legacy Crawlee scraper (deprecated)
 ├── email_extractor.py    # Email extraction utilities
 ├── google_agent.py       # Google AI integration
 ├── config.py             # Configuration management
@@ -337,13 +339,42 @@ email-scraper-agent/
 
 ## How It Works
 
-1. **Topic Analysis**: The agent uses Google's AI to understand the topic and generate relevant search queries
-2. **Website Discovery**: Searches for and identifies websites matching the classification
+1. **Topic Analysis**: The agent uses Google's Gemini AI to understand the topic and generate relevant search queries
+2. **Website Discovery**: AI identifies websites matching the classification based on topic analysis
 3. **Cache Check**: Automatically checks if websites have been visited before to avoid duplicate work
-4. **Web Scraping**: Uses Crawlee to efficiently crawl identified websites
+4. **Web Scraping**: Custom HTTP-based scraper crawls identified websites using:
+   - Browser-like headers to avoid bot detection
+   - Smart prioritization of contact/about/team pages
+   - Recursive link following with depth limits
+   - Respectful crawling with delays between requests
 5. **Email Extraction**: Applies regex patterns and validation to extract email addresses
 6. **Cache Update**: Stores visited URLs with metadata for future reference
 7. **Data Storage**: Saves unique emails with metadata (source, timestamp, confidence)
+
+## Technical Implementation
+
+### Custom Web Scraper
+
+This project uses a **custom HTTP-based scraper** (`simple_scraper.py`) instead of traditional web scraping frameworks. Here's why:
+
+**Key Features:**
+- **httpx-based**: Modern async HTTP client with excellent performance
+- **Browser-like headers**: Mimics real browser requests to avoid bot detection
+- **SSL workarounds**: Configured to work in various environments with SSL/TLS issues
+- **Smart crawling**:
+  - Prioritizes contact, about, team, and staff pages where emails are more likely
+  - Respects robots.txt and uses delays between requests
+  - Configurable depth and page limits
+  - Same-domain restriction to stay focused
+
+**Why not Crawlee?**
+While Crawlee is a powerful framework, we encountered SSL/TLS issues with its default HTTP client in certain environments. Our custom scraper:
+- Works reliably across different systems
+- Gives us full control over request behavior
+- Is simpler to debug and customize
+- Still provides excellent results for email extraction
+
+**Note**: The legacy Crawlee-based scraper (`scraper.py`) is kept for compatibility but is no longer actively used.
 
 ## Output Format
 
