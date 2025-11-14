@@ -10,6 +10,7 @@ from urllib.parse import urljoin, urlparse, urlencode
 from bs4 import BeautifulSoup
 import tldextract
 from loguru import logger
+import time
 
 from email_extractor import EmailExtractor, EmailData
 from url_cache import URLCache
@@ -100,10 +101,22 @@ class SimpleEmailScraper:
 
         try:
             # Create HTTP client with SSL verification disabled for this environment
+            # Add browser-like headers to avoid being blocked
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
+
             async with httpx.AsyncClient(
                 verify=False,
                 timeout=self.timeout,
-                follow_redirects=True
+                follow_redirects=True,
+                headers=headers
             ) as client:
                 # Start crawling from the base URL
                 await self._crawl_page(client, url)
@@ -176,16 +189,36 @@ class SimpleEmailScraper:
 
             # Extract emails from HTML
             emails = self.email_extractor.extract_from_html(response.text, url)
+            if emails:
+                logger.info(f"Found {len(emails)} emails on {url}: {[e.email for e in emails]}")
             self.emails_found.extend(emails)
 
             logger.debug(f"Found {len(emails)} emails on {url}")
 
+            # Small delay to be respectful to servers
+            await asyncio.sleep(0.5)
+
             # Extract and crawl links if we haven't hit the limit
             if len(self.visited_urls) < self.max_pages_per_site and depth < self.max_depth:
                 links = self._extract_links_from_soup(soup, url)
+                logger.debug(f"Found {len(links)} valid links to crawl on {url}")
 
-                # Crawl a subset of links (limit to avoid too many requests)
-                for link in links[:10]:
+                # Prioritize contact/about pages (more likely to have emails)
+                priority_links = []
+                other_links = []
+                for link in links:
+                    link_lower = link.lower()
+                    if any(keyword in link_lower for keyword in ['/contact', '/about', '/team', '/people', '/staff']):
+                        priority_links.append(link)
+                    else:
+                        other_links.append(link)
+
+                # Crawl priority links first, then others
+                all_links = priority_links + other_links
+                links_to_crawl = all_links[:10]
+                logger.debug(f"Will attempt to crawl {len(links_to_crawl)} links ({len(priority_links)} priority)")
+
+                for link in links_to_crawl:
                     if len(self.visited_urls) >= self.max_pages_per_site:
                         break
                     await self._crawl_page(client, link, depth + 1)
