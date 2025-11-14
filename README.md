@@ -8,6 +8,7 @@ An intelligent AI agent that uses the Google Agent Development Kit and Crawlee w
 - **Efficient Web Scraping**: Leverages Crawlee for robust and scalable web scraping
 - **Email Extraction**: Automatically identifies and extracts email addresses from web pages
 - **Topic-Based Discovery**: Finds websites related to your specified classification or topic
+- **Smart Caching**: Automatically tracks visited websites to prevent duplicate scraping
 - **Data Storage**: Saves extracted emails in multiple formats (CSV, JSON)
 
 ## Prerequisites
@@ -88,6 +89,94 @@ cp .env.example .env
 # Edit .env and add your Google API credentials
 ```
 
+## Getting Google API Credentials
+
+You need a Google API key to use the Generative AI features. There are two ways to get one:
+
+### Option 1: Google AI Studio (Recommended - Easiest)
+
+This is the **fastest way** to get started. No Google Cloud project setup required!
+
+1. **Visit Google AI Studio**
+   - Go to: https://aistudio.google.com/app/apikey
+   - Sign in with your Google account
+
+2. **Create API Key**
+   - Click "Get API Key" or "Create API Key"
+   - Choose "Create API key in new project" (auto-creates a project for you)
+   - Copy the API key immediately
+
+3. **Add to your .env file**
+   ```env
+   GOOGLE_API_KEY=AIzaSy...your_actual_key_here
+   ```
+
+**What you get (Free Tier):**
+- Access to Gemini models (gemini-pro, gemini-pro-vision)
+- 60 requests per minute free
+- Perfect for development and testing
+- No billing required
+
+### Option 2: Google Cloud Console (For Production)
+
+Use this if you need more control, higher quotas, or production features.
+
+1. **Go to Google Cloud Console**
+   - Visit: https://console.cloud.google.com/
+
+2. **Create a New Project**
+   - Click "Select a project" → "New Project"
+   - Name it (e.g., "email-scraper-agent")
+   - Click "Create"
+
+3. **Enable the API**
+   - Search for "Generative Language API"
+   - Click "Enable"
+
+4. **Create Credentials**
+   - Go to "APIs & Services" → "Credentials"
+   - Click "+ CREATE CREDENTIALS" → "API Key"
+   - Copy the API key
+   - (Optional) Add restrictions for security
+
+5. **Add to your .env file**
+   ```env
+   GOOGLE_API_KEY=your_api_key_here
+   GOOGLE_PROJECT_ID=your-project-id  # Optional
+   ```
+
+### Which Option Should I Choose?
+
+| Feature | Google AI Studio | Google Cloud Console |
+|---------|-----------------|---------------------|
+| **Setup Time** | 2 minutes | 5-10 minutes |
+| **Complexity** | Very simple | More complex |
+| **Best For** | Testing, development | Production, teams |
+| **Quotas** | 60 req/min free | Configurable with billing |
+
+**Recommendation**: Start with **Google AI Studio**. You can always migrate later.
+
+### Testing Your API Key
+
+Once configured, test it:
+
+```bash
+# Test configuration
+uv run python main.py config
+
+# Test with topic analysis (quick, no scraping)
+uv run python main.py analyze --topic "technology companies"
+```
+
+If you see analysis results, your API key is working! 🎉
+
+### Security Best Practices
+
+- **Never commit** your API key to git (already handled via `.gitignore`)
+- **Restrict the key** (in Cloud Console) to specific APIs
+- **Monitor usage** at https://aistudio.google.com/app/apikey
+- **Rotate keys** periodically for security
+
 ## Configuration
 
 Create a `.env` file with the following variables:
@@ -158,6 +247,83 @@ for website, data in results.items():
     print(f"Confidence: {data['confidence']}")
 ```
 
+## URL Cache - Preventing Duplicate Scraping
+
+The agent automatically tracks all visited websites to avoid scraping them again. This saves time and respects websites by not overwhelming them with repeated requests.
+
+### How It Works
+
+- **Automatic Tracking**: Every website you scrape is saved to `storage/visited_urls.json`
+- **Skip Previously Visited**: On subsequent runs, the agent automatically skips URLs it has already visited
+- **Persistent Across Sessions**: The cache persists between runs, so you can resume work anytime
+- **Metadata Storage**: Stores visit timestamps, success status, and number of emails found
+
+### Managing the Cache
+
+View cache statistics:
+```bash
+uv run python main.py cache stats
+```
+
+List all visited URLs:
+```bash
+uv run python main.py cache list
+uv run python main.py cache list --successful-only
+uv run python main.py cache list --failed-only --limit 10
+```
+
+Force re-scraping (ignore cache):
+```bash
+uv run python main.py run --topic "healthcare" --force-rescrape
+```
+
+Clear the entire cache:
+```bash
+uv run python main.py cache clear
+```
+
+Remove a specific URL:
+```bash
+uv run python main.py cache remove https://example.com
+```
+
+Clean up old entries (older than 30 days):
+```bash
+uv run python main.py cache cleanup --days 30
+```
+
+Export cache to CSV:
+```bash
+uv run python main.py cache export --output cache_report.csv
+```
+
+### Programmatic Usage
+
+```python
+from agent import EmailScraperAgent
+from url_cache import URLCache
+
+# Create agent with force_rescrape option
+agent = EmailScraperAgent(
+    topic="technology startups",
+    force_rescrape=True  # Re-scrape even if already visited
+)
+
+# Or manage cache directly
+cache = URLCache()
+
+# Check if URL is visited
+if cache.is_visited("https://example.com"):
+    print("Already visited!")
+
+# Get stats
+stats = cache.get_stats()
+print(f"Total URLs cached: {stats['total_urls']}")
+
+# Clear cache
+cache.clear()
+```
+
 ## Project Structure
 
 ```
@@ -167,12 +333,15 @@ email-scraper-agent/
 ├── email_extractor.py    # Email extraction utilities
 ├── google_agent.py       # Google AI integration
 ├── config.py             # Configuration management
+├── url_cache.py          # URL caching to prevent duplicate scraping
 ├── main.py               # CLI interface
 ├── example.py            # Usage examples
 ├── pyproject.toml        # Project metadata and dependencies (UV)
 ├── requirements.txt      # Python dependencies (pip fallback)
 ├── .env.example          # Example environment file
 ├── SETUP.md              # Detailed setup guide
+├── storage/              # Cache and data storage (gitignored)
+│   └── visited_urls.json # Visited URLs cache
 └── README.md             # This file
 ```
 
@@ -180,9 +349,11 @@ email-scraper-agent/
 
 1. **Topic Analysis**: The agent uses Google's AI to understand the topic and generate relevant search queries
 2. **Website Discovery**: Searches for and identifies websites matching the classification
-3. **Web Scraping**: Uses Crawlee to efficiently crawl identified websites
-4. **Email Extraction**: Applies regex patterns and validation to extract email addresses
-5. **Data Storage**: Saves unique emails with metadata (source, timestamp, confidence)
+3. **Cache Check**: Automatically checks if websites have been visited before to avoid duplicate work
+4. **Web Scraping**: Uses Crawlee to efficiently crawl identified websites
+5. **Email Extraction**: Applies regex patterns and validation to extract email addresses
+6. **Cache Update**: Stores visited URLs with metadata for future reference
+7. **Data Storage**: Saves unique emails with metadata (source, timestamp, confidence)
 
 ## Output Format
 

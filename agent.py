@@ -15,6 +15,7 @@ from google_agent import GoogleSearchAgent, WebsiteCandidate
 from scraper import EmailScraper, ScrapedWebsite
 from email_extractor import EmailData
 from config import Config
+from url_cache import URLCache
 
 
 @dataclass
@@ -45,7 +46,9 @@ class EmailScraperAgent:
         topic: str,
         config: Optional[Config] = None,
         max_websites: Optional[int] = None,
-        output_format: Optional[str] = None
+        output_format: Optional[str] = None,
+        force_rescrape: bool = False,
+        url_cache: Optional[URLCache] = None
     ):
         """
         Initialize the Email Scraper Agent.
@@ -55,6 +58,8 @@ class EmailScraperAgent:
             config: Configuration object (if None, loads from env)
             max_websites: Override max websites from config
             output_format: Override output format from config
+            force_rescrape: Force re-scraping of previously visited URLs
+            url_cache: URL cache instance (if None, creates new one)
         """
         self.topic = topic
 
@@ -71,6 +76,9 @@ class EmailScraperAgent:
         if output_format is not None:
             self.config.output_format = output_format
 
+        # Initialize URL cache
+        self.url_cache = url_cache if url_cache is not None else URLCache()
+
         # Initialize components
         self.google_agent = GoogleSearchAgent(
             api_key=self.config.google_api_key,
@@ -82,7 +90,9 @@ class EmailScraperAgent:
             max_depth=self.config.max_depth,
             timeout=self.config.get_timeout_ms(),
             min_confidence=self.config.min_confidence,
-            headless=self.config.headless
+            headless=self.config.headless,
+            url_cache=self.url_cache,
+            force_rescrape=force_rescrape
         )
 
         # Results storage
