@@ -90,7 +90,6 @@ class EmailScraperAgent:
             max_depth=self.config.max_depth,
             timeout=self.config.get_timeout_ms(),
             min_confidence=self.config.min_confidence,
-            headless=self.config.headless,
             url_cache=self.url_cache,
             force_rescrape=force_rescrape
         )
