@@ -184,8 +184,9 @@ class EmailScraper:
                 # Find and enqueue links to crawl
                 if len(self.visited_urls) < self.max_pages_per_site:
                     links = self._extract_links_from_soup(soup, url)
-                    for link in links[:10]:  # Limit links per page
-                        await context.enqueue_links([link])
+                    # Enqueue all links at once (limit to 10 per page)
+                    if links:
+                        await context.enqueue_links(links[:10])
 
             except Exception as e:
                 logger.error(f"Error processing page {url}: {e}")
