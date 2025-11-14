@@ -13,6 +13,7 @@ from crawlee.playwright_crawler import PlaywrightCrawler, PlaywrightCrawlingCont
 from crawlee.storages import Dataset
 
 from email_extractor import EmailExtractor, EmailData
+from url_cache import URLCache
 
 
 @dataclass
@@ -35,7 +36,9 @@ class EmailScraper:
         max_depth: int = 3,
         timeout: int = 30000,
         min_confidence: float = 0.7,
-        headless: bool = True
+        headless: bool = True,
+        url_cache: Optional[URLCache] = None,
+        force_rescrape: bool = False
     ):
         """
         Initialize the email scraper.
@@ -46,16 +49,22 @@ class EmailScraper:
             timeout: Page timeout in milliseconds
             min_confidence: Minimum email confidence score
             headless: Whether to run browser in headless mode
+            url_cache: URL cache instance to track visited websites
+            force_rescrape: Force re-scraping of previously visited URLs
         """
         self.max_pages_per_site = max_pages_per_site
         self.max_depth = max_depth
         self.timeout = timeout
         self.headless = headless
+        self.force_rescrape = force_rescrape
 
         self.email_extractor = EmailExtractor(
             validate_dns=False,  # Skip DNS validation for speed
             min_confidence=min_confidence
         )
+
+        # Initialize URL cache
+        self.url_cache = url_cache if url_cache is not None else URLCache()
 
         self.visited_urls: Set[str] = set()
         self.emails_found: List[EmailData] = []
@@ -71,6 +80,24 @@ class EmailScraper:
         Returns:
             ScrapedWebsite object with results
         """
+        # Check cache first (unless force_rescrape is enabled)
+        if not self.force_rescrape and self.url_cache.is_visited(url):
+            cache_info = self.url_cache.get_info(url)
+            logger.info(f"URL already visited (cached): {url}")
+            logger.info(f"  Last visited: {cache_info.last_visited}")
+            logger.info(f"  Emails found: {cache_info.emails_found}")
+            logger.info(f"  Skipping... (use force_rescrape=True to re-scrape)")
+
+            # Return cached result indicator
+            return ScrapedWebsite(
+                url=url,
+                title=self._get_domain(url),
+                emails=[],
+                page_count=0,
+                success=cache_info.success,
+                error="Skipped - already visited (cached)" if cache_info.success else cache_info.error
+            )
+
         logger.info(f"Starting to scrape website: {url}")
 
         # Reset state for new website
@@ -94,6 +121,13 @@ class EmailScraper:
 
             logger.info(f"Scraping complete. Found {len(unique_emails)} unique emails from {len(self.visited_urls)} pages")
 
+            # Mark URL as visited in cache
+            self.url_cache.mark_visited(
+                url=url,
+                success=True,
+                emails_found=len(unique_emails)
+            )
+
             return ScrapedWebsite(
                 url=url,
                 title=self._get_domain(url),
@@ -104,6 +138,15 @@ class EmailScraper:
 
         except Exception as e:
             logger.error(f"Error scraping {url}: {e}")
+
+            # Mark URL as visited with error
+            self.url_cache.mark_visited(
+                url=url,
+                success=False,
+                emails_found=0,
+                error=str(e)
+            )
+
             return ScrapedWebsite(
                 url=url,
                 title=self._get_domain(url),
