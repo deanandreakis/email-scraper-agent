@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """
 Example usage of the Email Scraper Agent.
+
+To run this file:
+    With UV (recommended):
+        uv run python example.py
+
+    Or activate venv first:
+        source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+        python example.py
 """
 
 import asyncio

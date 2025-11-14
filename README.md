@@ -13,10 +13,52 @@ An intelligent AI agent that uses the Google Agent Development Kit and Crawlee w
 ## Prerequisites
 
 - Python 3.9 or higher
+- [uv](https://github.com/astral-sh/uv) - Fast Python package installer (recommended)
 - Google API credentials (for Agent Development Kit)
 - Internet connection
 
 ## Installation
+
+### Option 1: Using UV (Recommended)
+
+UV is a fast Python package installer and resolver. It's the recommended way to set up this project.
+
+1. Install UV (if not already installed):
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or with pip
+pip install uv
+```
+
+2. Clone the repository:
+```bash
+git clone <repository-url>
+cd email-scraper-agent
+```
+
+3. Create virtual environment and install dependencies:
+```bash
+# UV automatically creates a virtual environment and installs dependencies
+uv sync
+```
+
+4. Install Playwright browsers (required by Crawlee):
+```bash
+uv run playwright install
+```
+
+5. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env and add your Google API credentials
+```
+
+### Option 2: Using pip
 
 1. Clone the repository:
 ```bash
@@ -26,8 +68,8 @@ cd email-scraper-agent
 
 2. Create a virtual environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
 3. Install dependencies:
@@ -81,7 +123,11 @@ agent.save_emails("healthcare_emails.csv")
 ### Command Line Usage
 
 ```bash
-python main.py --topic "technology companies" --max-sites 15 --output emails.csv
+# With UV
+uv run python main.py run --topic "technology companies" --max-sites 15 --output emails.csv
+
+# Or if activated in virtual environment
+python main.py run --topic "technology companies" --max-sites 15 --output emails.csv
 ```
 
 ### Advanced Usage
@@ -119,10 +165,14 @@ email-scraper-agent/
 ├── agent.py              # Main agent orchestration
 ├── scraper.py            # Crawlee-based web scraper
 ├── email_extractor.py    # Email extraction utilities
+├── google_agent.py       # Google AI integration
 ├── config.py             # Configuration management
 ├── main.py               # CLI interface
-├── requirements.txt      # Python dependencies
+├── example.py            # Usage examples
+├── pyproject.toml        # Project metadata and dependencies (UV)
+├── requirements.txt      # Python dependencies (pip fallback)
 ├── .env.example          # Example environment file
+├── SETUP.md              # Detailed setup guide
 └── README.md             # This file
 ```
 
