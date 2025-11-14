@@ -194,10 +194,17 @@ class EmailScraperAgent:
             if website.success:
                 for email_dict in website.emails:
                     # Convert dict back to EmailData
+                    # Handle found_at - it might be a datetime or string
+                    found_at = email_dict['found_at']
+                    if isinstance(found_at, str):
+                        found_at = datetime.fromisoformat(found_at)
+                    elif not isinstance(found_at, datetime):
+                        found_at = datetime.now()  # Fallback
+
                     email_data = EmailData(
                         email=email_dict['email'],
                         source_url=email_dict['source_url'],
-                        found_at=datetime.fromisoformat(email_dict['found_at']),
+                        found_at=found_at,
                         confidence=email_dict['confidence'],
                         context=email_dict.get('context')
                     )
