@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 import tldextract
 from loguru import logger
 
-from crawlee.playwright_crawler import PlaywrightCrawler, PlaywrightCrawlingContext
+from crawlee.crawlers import PlaywrightCrawler, PlaywrightCrawlingContext
 from crawlee.storages import Dataset
 
 from email_extractor import EmailExtractor, EmailData
