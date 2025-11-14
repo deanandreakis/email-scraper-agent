@@ -35,7 +35,6 @@ class Config(BaseSettings):
         "EmailScraperAgent/1.0",
         description="User agent string"
     )
-    headless: bool = Field(True, description="Run browser in headless mode")
 
     # Rate Limiting
     requests_per_second: int = Field(2, description="Maximum requests per second")
@@ -128,7 +127,6 @@ class Config(BaseSettings):
         logger.info(f"  Min confidence: {self.min_confidence}")
         logger.info(f"  Output format: {self.output_format}")
         logger.info(f"  Output directory: {self.output_dir}")
-        logger.info(f"  Headless mode: {self.headless}")
 
 
 def load_config() -> Config:

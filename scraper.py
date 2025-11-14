@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 import tldextract
 from loguru import logger
 
-from crawlee.crawlers import PlaywrightCrawler, PlaywrightCrawlingContext
+from crawlee.crawlers import BeautifulSoupCrawler, BeautifulSoupCrawlingContext
 from crawlee.storages import Dataset
 
 from email_extractor import EmailExtractor, EmailData
@@ -36,7 +36,6 @@ class EmailScraper:
         max_depth: int = 3,
         timeout: int = 30000,
         min_confidence: float = 0.7,
-        headless: bool = True,
         url_cache: Optional[URLCache] = None,
         force_rescrape: bool = False
     ):
@@ -46,16 +45,14 @@ class EmailScraper:
         Args:
             max_pages_per_site: Maximum pages to crawl per website
             max_depth: Maximum crawl depth
-            timeout: Page timeout in milliseconds
+            timeout: Request timeout in milliseconds
             min_confidence: Minimum email confidence score
-            headless: Whether to run browser in headless mode
             url_cache: URL cache instance to track visited websites
             force_rescrape: Force re-scraping of previously visited URLs
         """
         self.max_pages_per_site = max_pages_per_site
         self.max_depth = max_depth
         self.timeout = timeout
-        self.headless = headless
         self.force_rescrape = force_rescrape
 
         self.email_extractor = EmailExtractor(
@@ -107,9 +104,8 @@ class EmailScraper:
 
         try:
             # Create crawler
-            crawler = PlaywrightCrawler(
+            crawler = BeautifulSoupCrawler(
                 max_requests_per_crawl=self.max_pages_per_site,
-                headless=self.headless,
                 request_handler=self._create_request_handler(),
             )
 
@@ -159,7 +155,7 @@ class EmailScraper:
     def _create_request_handler(self):
         """Create the request handler for Crawlee."""
 
-        async def request_handler(context: PlaywrightCrawlingContext) -> None:
+        async def request_handler(context: BeautifulSoupCrawlingContext) -> None:
             """Handle each page request."""
             url = context.request.url
 
@@ -171,12 +167,13 @@ class EmailScraper:
             logger.debug(f"Processing page: {url}")
 
             try:
-                # Wait for page to load
-                await context.page.wait_for_load_state('networkidle', timeout=self.timeout)
+                # Get page content (BeautifulSoup already parsed)
+                soup = context.soup
+                html = str(soup)
 
-                # Get page content
-                html = await context.page.content()
-                title = await context.page.title()
+                # Get title
+                title_tag = soup.find('title')
+                title = title_tag.get_text() if title_tag else ''
 
                 # Extract emails from HTML
                 emails = self.email_extractor.extract_from_html(html, url)
@@ -186,7 +183,7 @@ class EmailScraper:
 
                 # Find and enqueue links to crawl
                 if len(self.visited_urls) < self.max_pages_per_site:
-                    links = await self._extract_links(context)
+                    links = self._extract_links_from_soup(soup, url)
                     for link in links[:10]:  # Limit links per page
                         await context.enqueue_links([link])
 
@@ -195,22 +192,25 @@ class EmailScraper:
 
         return request_handler
 
-    async def _extract_links(self, context: PlaywrightCrawlingContext) -> List[str]:
+    def _extract_links_from_soup(self, soup, base_url: str) -> List[str]:
         """
-        Extract relevant links from the current page.
+        Extract relevant links from the current page using BeautifulSoup.
 
         Args:
-            context: Crawling context
+            soup: BeautifulSoup object
+            base_url: Base URL for resolving relative links
 
         Returns:
             List of URLs to crawl
         """
         try:
             # Get all links
-            links = await context.page.eval_on_selector_all(
-                'a[href]',
-                '(elements) => elements.map(el => el.href)'
-            )
+            links = []
+            for a_tag in soup.find_all('a', href=True):
+                href = a_tag['href']
+                # Resolve relative URLs
+                absolute_url = urljoin(base_url, href)
+                links.append(absolute_url)
 
             # Filter links
             filtered_links = []
