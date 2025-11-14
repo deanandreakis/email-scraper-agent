@@ -12,7 +12,7 @@ from pathlib import Path
 from loguru import logger
 
 from google_agent import GoogleSearchAgent, WebsiteCandidate
-from scraper import EmailScraper, ScrapedWebsite
+from simple_scraper import SimpleEmailScraper as EmailScraper, ScrapedWebsite
 from email_extractor import EmailData
 from config import Config
 from url_cache import URLCache
@@ -88,7 +88,7 @@ class EmailScraperAgent:
         self.scraper = EmailScraper(
             max_pages_per_site=self.config.max_pages_per_site,
             max_depth=self.config.max_depth,
-            timeout=self.config.get_timeout_ms(),
+            timeout=self.config.timeout_seconds,
             min_confidence=self.config.min_confidence,
             url_cache=self.url_cache,
             force_rescrape=force_rescrape
