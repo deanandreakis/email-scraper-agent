@@ -112,8 +112,8 @@ This is the **fastest way** to get started. No Google Cloud project setup requir
    ```
 
 **What you get (Free Tier):**
-- Access to Gemini models (gemini-pro, gemini-pro-vision)
-- 60 requests per minute free
+- Access to Gemini models (gemini-1.5-flash, gemini-1.5-pro)
+- 15 requests per minute free (gemini-1.5-flash), 2 RPM (gemini-1.5-pro)
 - Perfect for development and testing
 - No billing required
 
